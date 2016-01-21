@@ -1,0 +1,229 @@
+diff -u -r -N hostapd-20120910/src/ap/hapdMessageSender.h hostapd-20120910-WPA/src/ap/hapdMessageSender.h
+--- hostapd-20120910/src/ap/hapdMessageSender.h	1970-01-01 01:00:00.000000000 +0100
++++ hostapd-20120910-WPA/src/ap/hapdMessageSender.h	2013-04-30 15:41:40.654248928 +0200
+@@ -0,0 +1,64 @@
++/*
++ * hapdMessageSender.c
++ *
++ *  Created on: Apr 23, 2013
++ *      Author: cem
++ */
++
++
++#include <stdio.h>
++#include <unistd.h>
++#include <sys/socket.h>
++#include <sys/un.h>
++#include <string.h>
++//#include "util.c"
++#define SOCKET_PATH "/var/run/uloop/hostapd_socket"
++
++#define BUFFLEN 4000
++
++void sendMessage(char *MAC,char *Message){
++	char *buf;
++	asprintf(&buf,"MAC:%s,Message:%s",MAC, Message);
++	printf("buf %s",buf);
++	sendall(buf);
++	free(buf);
++}
++void sendall(char *buf) {
++	/*Define parameters*/
++	char *str = buf;
++	struct sockaddr_un strAddr;
++	socklen_t lenAddr;
++	int fdSock;
++
++	if ((fdSock = socket(PF_UNIX, SOCK_STREAM, 0)) < 0) {
++		perror("socket");
++		//exit(1);
++	}
++
++	strAddr.sun_family = AF_UNIX;/* Unix domain */
++	strcpy(strAddr.sun_path, SOCKET_PATH);
++	lenAddr = sizeof(strAddr.sun_family) + strlen(strAddr.sun_path);
++
++	if (connect(fdSock, (struct sockaddr*) &strAddr, lenAddr) != 0) {
++		perror("connect");
++		//exit(1);
++	}
++	printf("\nConnected to Server ... sending data ...\n");
++
++	if (send(fdSock, str, strlen(str), 0) == -1) {
++		perror("send");
++		//exit(1);
++	}
++	close(fdSock);
++	//free(str);
++}
++
++/*
++ * Sample Usage
++ */
++//int main(int argc, char *argv[]) {
++//	while(1){
++//		sleep(1);
++//		char *message="Authentication Message, Dissaociation Message";
++//		sendMessage(message);
++//	}
+diff -u -r -N hostapd-20120910/src/ap/hapdMessageSender.h~ hostapd-20120910-WPA/src/ap/hapdMessageSender.h~
+--- hostapd-20120910/src/ap/hapdMessageSender.h~	1970-01-01 01:00:00.000000000 +0100
++++ hostapd-20120910-WPA/src/ap/hapdMessageSender.h~	2013-04-30 15:41:22.221268545 +0200
+@@ -0,0 +1,64 @@
++/*
++ * hapdMessageSender.c
++ *
++ *  Created on: Apr 23, 2013
++ *      Author: cem
++ */
++
++
++#include <stdio.h>
++#include <unistd.h>
++#include <sys/socket.h>
++#include <sys/un.h>
++#include <string.h>
++//#include "util.c"
++#define SOCKET_PATH "/var/run/uloop/hostapd_socket"
++
++#define BUFFLEN 4000
++
++void sendMessage(char *MAC,char *Message){
++	char *buf;
++	asprintf(&buf,"MAC:%s,Message:%s",MAC, Message);
++	printf("buf %s",buf);
++	sendall(buf);
++	free(buf);
++}
++void sendall(char *buf) {
++	/*Define parameters*/
++	char *str = buf;
++	struct sockaddr_un strAddr;
++	socklen_t lenAddr;
++	int fdSock;
++
++	if ((fdSock = socket(PF_UNIX, SOCK_STREAM, 0)) < 0) {
++		perror("socket");
++		//exit(1);
++	}
++
++	strAddr.sun_family = AF_UNIX;/* Unix domain */
++	strcpy(strAddr.sun_path, SOCKET_PATH);
++	lenAddr = sizeof(strAddr.sun_family) + strlen(strAddr.sun_path);
++
++	if (connect(fdSock, (struct sockaddr*) &strAddr, lenAddr) != 0) {
++		perror("connect");
++		//exit(1);
++	}
++	printf("\nConnected to Server ... sending data ...\n");
++
++	if (send(fdSock, str, strlen(str), 0) == -1) {
++		perror("send");
++		//exit(1);
++	}
++	close(fdSock);
++	//free(str);
++}
++
++/*
++ * Sample Usage
++ */
++//int main(int argc, char *argv[]) {
++//	while(1){
++//		sleep(1);
++//		char *message="Authentication Message, Dissaociation Message";
++//		sendMessage(message);
++//	}
+diff -u -r -N hostapd-20120910/src/ap/sta_info.c hostapd-20120910-WPA/src/ap/sta_info.c
+--- hostapd-20120910/src/ap/sta_info.c	2013-04-21 22:20:41.000000000 +0200
++++ hostapd-20120910-WPA/src/ap/sta_info.c	2013-04-23 18:00:35.000000000 +0200
+@@ -30,6 +30,8 @@
+ #include "ap_drv_ops.h"
+ #include "gas_serv.h"
+ #include "sta_info.h"
++//#include "packettransfer.h"
++#include "hapdMessageSender.h"
+ 
+ static void ap_sta_remove_in_other_bss(struct hostapd_data *hapd,
+ 				       struct sta_info *sta);
+@@ -863,13 +865,16 @@
+ #endif /* CONFIG_P2P */
+ 
+ 	if (authorized) {
+-		if (dev_addr)
++		if (dev_addr){
+ 			wpa_msg(hapd->msg_ctx, MSG_INFO, AP_STA_CONNECTED
+ 				MACSTR " p2p_dev_addr=" MACSTR,
+ 				MAC2STR(sta->addr), MAC2STR(dev_addr));
+-		else
++		}
++		else{
+ 			wpa_msg(hapd->msg_ctx, MSG_INFO, AP_STA_CONNECTED
+ 				MACSTR, MAC2STR(sta->addr));
++	
++		}
+ 		if (hapd->msg_ctx_parent &&
+ 		    hapd->msg_ctx_parent != hapd->msg_ctx && dev_addr)
+ 			wpa_msg(hapd->msg_ctx_parent, MSG_INFO,
+@@ -882,14 +887,28 @@
+ 				AP_STA_CONNECTED MACSTR, MAC2STR(sta->addr));
+ 
+ 		sta->flags |= WLAN_STA_AUTHORIZED;
++
++	///////////////////////////////////////
++		//printf("\n\n\n\n mursel : handle_deaut is disassociated: \n\n\n\n");
++	 	printf("\n\n\n\n HOSTAPD MESSAGE STAINFO:  Station is AP_STA_CONNECTED  \n\n\n\n");
++		char *MAC;			
++                asprintf(&MAC,"%02x:%02x:%02x:%02x:%02x:%02x",sta->addr[0], sta->addr[1], sta->addr[2], sta->addr[3], sta->addr[4], sta->addr[5]);
++                sendMessage( MAC,"Authentication");
++		free(MAC);   
++	        printf("\n\n\n\n HOSTAPD MESSAGE:  STA address is " MACSTR " \n\n\n\n", MAC2STR(sta->addr));
++
++		/////////////////////////////////////	
++
+ 	} else {
+-		if (dev_addr)
++		if (dev_addr){
+ 			wpa_msg(hapd->msg_ctx, MSG_INFO, AP_STA_DISCONNECTED
+ 				MACSTR " p2p_dev_addr=" MACSTR,
+ 				MAC2STR(sta->addr), MAC2STR(dev_addr));
+-		else
++		}
++		else{
+ 			wpa_msg(hapd->msg_ctx, MSG_INFO, AP_STA_DISCONNECTED
+ 				MACSTR, MAC2STR(sta->addr));
++		}
+ 		if (hapd->msg_ctx_parent &&
+ 		    hapd->msg_ctx_parent != hapd->msg_ctx && dev_addr)
+ 			wpa_msg(hapd->msg_ctx_parent, MSG_INFO,
+@@ -901,6 +920,15 @@
+ 				AP_STA_DISCONNECTED MACSTR,
+ 				MAC2STR(sta->addr));
+ 		sta->flags &= ~WLAN_STA_AUTHORIZED;
++		///////////////////////////////////////
++		//printf("\n\n\n\n mursel : handle_deaut is disassociated: \n\n\n\n");
++	 	printf("\n\n\n\n HOSTAPD MESSAGE STAINFO:  Station is AP_STA_DISCONNECTED  \n\n\n\n");
++		char *MAC;
++       	 	asprintf(&MAC,"%02x:%02x:%02x:%02x:%02x:%02x",sta->addr[0], sta->addr[1], sta->addr[2], sta->addr[3], sta->addr[4], sta->addr[5]);
++       		 sendMessage(MAC,"Disassociation");
++	        printf("\n\n\n\n HOSTAPD MESSAGE:  STA address is " MACSTR " \n\n\n\n", MAC2STR(sta->addr));
++		free(MAC); 
++		/////////////////////////////////////	
+ 	}
+ 
+ 	if (hapd->sta_authorized_cb)
+@@ -921,6 +949,14 @@
+ 
+ 	if (sta == NULL)
+ 		return;
++
++///////////////////////////////////////
++		//printf("\n\n\n\n mursel : handle_deaut is disassociated: \n\n\n\n");
++	 	printf("\n\n\n\n HOSTAPD MESSAGE STAINFO:  Station is disconnect 4 due to the timeout \n\n\n\n");
++		
++	        printf("\n\n\n\n HOSTAPD MESSAGE:  STA address is " MACSTR " \n\n\n\n", MAC2STR(sta->addr));
++
++		/////////////////////////////////////	
+ 	ap_sta_set_authorized(hapd, sta, 0);
+ 	wpa_auth_sm_event(sta->wpa_sm, WPA_DEAUTH);
+ 	ieee802_1x_notify_port_enabled(sta->eapol_sm, 0);

@@ -1,0 +1,588 @@
+diff -u -r -N hostapd-20120910/src/ap/drv_callbacks.c originalPackets/hostapd-20120910/src/ap/drv_callbacks.c
+--- hostapd-20120910/src/ap/drv_callbacks.c	2013-04-21 22:15:03.865133335 +0200
++++ originalPackets/hostapd-20120910/src/ap/drv_callbacks.c	2013-04-21 22:20:41.000000000 +0200
+@@ -325,23 +325,12 @@
+ 	hostapd_logger(hapd, addr, HOSTAPD_MODULE_IEEE80211,
+ 		       HOSTAPD_LEVEL_INFO, "disassociated");
+ 
+-
+-
+ 	sta = ap_get_sta(hapd, addr);
+ 	if (sta == NULL) {
+ 		wpa_printf(MSG_DEBUG, "Disassociation notification for "
+ 			   "unknown STA " MACSTR, MAC2STR(addr));
+ 		return;
+ 	}
+-	///////////////////////////////
+-	struct eapol_state_machine *sm = sta->eapol_sm;
+-        printf("\n\n\n\nHOSTAPD MESSAGE DRV: Station is disassociated \n");
+-        printf("HOSTAPD MESSAGE: STA address is " MACSTR " \n", MAC2STR(sta->addr));
+-	char *MAC;
+-        asprintf(&MAC,"%02x:%02x:%02x:%02x:%02x:%02x",sta->addr[0], sta->addr[1], sta->addr[2], sta->addr[3], sta->addr[4], sta->addr[5]);
+-        sendMessage(MAC,"unknown","Disassociation");
+-        free(MAC);	
+-	//////////////////////////////
+ 
+ 	ap_sta_set_authorized(hapd, sta, 0);
+ 	sta->flags &= ~(WLAN_STA_AUTH | WLAN_STA_ASSOC);
+diff -u -r -N hostapd-20120910/src/ap/ieee802_11.c originalPackets/hostapd-20120910/src/ap/ieee802_11.c
+--- hostapd-20120910/src/ap/ieee802_11.c	2013-04-21 22:15:03.865133335 +0200
++++ originalPackets/hostapd-20120910/src/ap/ieee802_11.c	2013-04-21 22:20:41.000000000 +0200
+@@ -1139,19 +1139,7 @@
+ 		       "is not associated.\n", MAC2STR(mgmt->sa));
+ 		return;
+ 	}
+-	///////////////////////////////////////
+-		
+-	//printf("\n\n\n\n mursel : handle_deaut is disassociated: \n\n\n\n");
+- 	printf("\n\n\n\nHOSTAPD MESSAGE 11:  Station is disassociated \n");
+-	printf("HOSTAPD MESSAGE:  STA address is " MACSTR " \n\n", MAC2STR(sta->addr));
+-	        
+-	//printf("\n\n\n\n mursel : STA identity %s \n", sm->identity);
+-	char *MAC;
+-        asprintf(&MAC,"%02x:%02x:%02x:%02x:%02x:%02x",sta->addr[0], sta->addr[1], sta->addr[2], sta->addr[3], sta->addr[4], sta->addr[5]);
+-        sendMessage(MAC,"unknown","Disassociation");
+-        free(MAC);	
+-        
+-	/////////////////////////////////////
++
+ 	ap_sta_set_authorized(hapd, sta, 0);
+ 	sta->flags &= ~(WLAN_STA_ASSOC | WLAN_STA_ASSOC_REQ_OK);
+ 	wpa_auth_sm_event(sta->wpa_sm, WPA_DISASSOC);
+@@ -1200,23 +1188,7 @@
+ 			MAC2STR(mgmt->sa));
+ 		return;
+ 	}
+-	
+-	//printf("\n\n\n\n ieee802_11.c line 1193 : handle_deaut is deauthentication:  \n\n\n\n");
+ 
+-	///////////////////////////////////////
+-		
+-	//printf("\n\n\n\n mursel : handle_deaut is deauthenticated: \n\n\n\n");
+-	printf("\n\n\n\nHOSTAPD MESSAGE 11: Station is deauthenticated \n");
+-        //printf("\n\n\n\n mursel : STA identity %s \n\n\n\n", sm->identity);
+-	printf("HOSTAPD MESSAGE: STA address is " MACSTR " \n\n", MAC2STR(sta->addr));
+-		
+-	char *MAC;
+-        asprintf(&MAC,"%02x:%02x:%02x:%02x:%02x:%02x",sta->addr[0], sta->addr[1], sta->addr[2], sta->addr[3], sta->addr[4], sta->addr[5]);
+-        sendMessage( MAC,"unknown","Deauthentication");
+-	free(MAC);
+-	
+-	/////////////////////////////////////
+-	
+ 	ap_sta_set_authorized(hapd, sta, 0);
+ 	sta->flags &= ~(WLAN_STA_AUTH | WLAN_STA_ASSOC |
+ 			WLAN_STA_ASSOC_REQ_OK);
+diff -u -r -N hostapd-20120910/src/ap/ieee802_1x.c originalPackets/hostapd-20120910/src/ap/ieee802_1x.c
+--- hostapd-20120910/src/ap/ieee802_1x.c	2013-04-21 22:15:03.865133335 +0200
++++ originalPackets/hostapd-20120910/src/ap/ieee802_1x.c	2013-04-21 22:20:41.000000000 +0200
+@@ -30,7 +30,7 @@
+ #include "ap_config.h"
+ #include "ap_drv_ops.h"
+ #include "ieee802_1x.h"
+-#include "packettransfer.h"
++
+ 
+ static void ieee802_1x_finished(struct hostapd_data *hapd,
+ 				struct sta_info *sta, int success);
+@@ -78,43 +78,20 @@
+ 				   struct sta_info *sta, int authorized)
+ {
+ 	int res;
+-	struct eapol_state_machine *sm = sta->eapol_sm;
++
+ 	if (sta->flags & WLAN_STA_PREAUTH)
+ 		return;
+ 
+ 	if (authorized) {
+-		printf("\n\n\n\nHOSTAPD MESSAGE 1X: Station is authorized \n"); 
+-		//printf("\n\n\n\n HOSTAPD MESSAGE: STA identity %s \n", sm->identity);
+-		printf("HOSTAPD MESSAGE: STA address is " MACSTR " \n", MAC2STR(sta->addr));
+-	        
+-		char *MAC;			
+-                asprintf(&MAC,"%02x:%02x:%02x:%02x:%02x:%02x",sta->addr[0], sta->addr[1], sta->addr[2], sta->addr[3], sta->addr[4], sta->addr[5]);
+-                sendMessage( MAC,"unknown","Authentication");
+-		free(MAC);                        
+-
+-		
+-		
+ 		ap_sta_set_authorized(hapd, sta, 1);
+ 		res = hostapd_set_authorized(hapd, sta, 1);
+ 		hostapd_logger(hapd, sta->addr, HOSTAPD_MODULE_IEEE8021X,
+ 			       HOSTAPD_LEVEL_DEBUG, "authorizing port");
+ 	} else {
+-
+-		printf("\n\n\n\nHOSTAPD MESSAGE 1X: Station is unauthorized \n");
+-                printf("HOSTAPD MESSAGE: STA identity %s \n", sm->identity);
+-		printf("HOSTAPD MESSAGE: STA address is " MACSTR " \n", MAC2STR(sta->addr));
+-		
+-		char *MAC;
+-                asprintf(&MAC,"%02x:%02x:%02x:%02x:%02x:%02x",sta->addr[0], sta->addr[1], sta->addr[2], sta->addr[3], sta->addr[4], sta->addr[5]);
+-                sendMessage( MAC,"unknown","Deauthentication");
+-		free(MAC);		
+-
+ 		ap_sta_set_authorized(hapd, sta, 0);
+ 		res = hostapd_set_authorized(hapd, sta, 0);
+ 		hostapd_logger(hapd, sta->addr, HOSTAPD_MODULE_IEEE8021X,
+ 			       HOSTAPD_LEVEL_DEBUG, "unauthorizing port");
+-
+-
+ 	}
+ 
+ 	if (res && errno != ENOENT) {
+diff -u -r -N hostapd-20120910/src/ap/packettransfer.h originalPackets/hostapd-20120910/src/ap/packettransfer.h
+--- hostapd-20120910/src/ap/packettransfer.h	2013-04-21 22:15:03.865133335 +0200
++++ originalPackets/hostapd-20120910/src/ap/packettransfer.h	1970-01-01 01:00:00.000000000 +0100
+@@ -1,300 +0,0 @@
+-#ifndef _packettransfer_h
+-#define _packettransfer_h
+-
+-#define BUFFSIZE 64000 
+-#define VERBOSE 1             // turn on or off debugging output 
+- 
+- 
+-typedef struct{ 
+-int port;                     // the port I'm listening on 
+-int new_fd;                   // new connection on new_fd 
+-struct sockaddr_in serv_addr; // connector's address information 
+-double buffer[BUFFSIZE];      // memory for buffer 
+-double buffer2[BUFFSIZE];     // memory for temporary buffer 
+-int connected; 
+-} Client; 
+- 
+- 
+-// create a new client 
+-Client newClient (p, test) 
+-int p, test; 
+-{ 
+-        Client c; 
+-        c.port = p; 
+- 
+-        if (VERBOSE) printf("Client: opening socket on port = %d \n", c.port); 
+-        if ((c.new_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) perror("socket" ); 
+- 
+-        c.serv_addr.sin_family = AF_INET; 
+-        c.serv_addr.sin_port = htons(c.port); 
+-        c.serv_addr.sin_addr.s_addr = INADDR_ANY; 
+-        
+-        bzero(&(c.serv_addr.sin_zero), 8); 
+- 
+-        if (connect(c.new_fd, (struct sockaddr *)&c.serv_addr, sizeof(struct sockaddr)) == -1) { 
+-                perror("connect new_fd" ); 
+-		c.connected = 0; 
+-           //     exit(1); 
+-        } 
+- 	else{
+-        // send out test byte 
+-	
+-		c.connected = 1; 
+-        	//char temp[1]; 
+-        	//temp[0] = '.'; 
+-        	//if (VERBOSE) printf("Sending test A: %d\n", temp[0]); 
+-        	//send(c.new_fd, temp, 1, 0); 
+- 	}
+-        return c; 
+-}; 
+- 
+-// send a test to the server 
+-void send_testB(c) 
+-Client c; 
+-{ 
+-	
+-
+-        char temp[1]; 
+-        temp[0] = 1; 
+-        if (VERBOSE) printf("Sending test B: %d\n", temp[0]); 
+-        send(c.new_fd, temp, 1, 0); 
+-}; 
+- 
+-
+-
+-
+-// send some doubles over the wire 
+-void send_packet_lenght(c, val,len) 
+-Client c; int *val;int len;
+-{ 
+-	int i=0;
+- 
+-	//printf("Client: packet lenght is sending val %d int: ", val[0]);  
+-        if (send(c.new_fd, (char *)val,len,0) == -1) 
+-                perror("send int X" ); 
+-	/* if (VERBOSE) { 
+-//                printf("Client: sending %d doubles: ", len); 
+-                for (i; i<len; i++) 
+-                        printf("%d ", val[i]); 
+-                printf("\n" ); 
+-        } */
+-}; 
+-
+-
+-void send_packet_net(c, val,len) 
+-Client c; char *val;int len;
+-{ 
+-	int i=0;
+- 
+-	//rintf("Client: sending val %d int: ", val[0]);  
+-        if (send(c.new_fd, (char *)val,len,0) == -1) 
+-                perror("send int X" ); 
+-	/* if (VERBOSE) { 
+-                printf("Client: sending %d doubles: ", len); 
+-                for (i; i<len; i++) 
+-                        printf("%d ", val[i]); 
+-                printf("\n" ); 
+-        } */
+-}; 
+-
+-
+-void send_packet(c, val,len) 
+-Client c; char *val;int len;
+-{ 
+-	int i=0;
+- 
+-	//printf("Client: packet is sending val %d int: ", val[0]);  
+-                printf("\n\n" ); 
+-        if (send(c.new_fd, (char *)val,len,0) == -1) 
+-                perror("send int X" ); 
+-	 /*if (VERBOSE) { 
+-                printf("Client: sending %d doubles: ", len); 
+-                for (i; i<len; i++) 
+-                        printf("%d ", val[i]); 
+-                printf("\n" ); 
+-        } */
+-}; 
+-
+-
+-// recieve the message in respose to the packet-length sent
+-void recv_ok_lenght(c)
+-Client c;
+-{
+-
+-        int numbytes = 0; 
+-        int i, j; 
+-        char *temp; 
+-        char *result; 
+-        int end = 0; 
+-        int total_bytes = 0; 
+-        temp = (char *) c.buffer; 
+-        result = (char *) c.buffer2; 
+-        j = 0; 
+- 
+-
+-
+-        // we receiving the incoming doubles one byte at a time 
+-        // oh cross language sockets are so much fun... 
+- 
+-        while (!end) { 
+-                if ((numbytes=recv(c.new_fd, temp, BUFFSIZE, 0))==-1) 
+-                        perror("recv" ); 
+-                for (i=0; i<numbytes; i++) { 
+-                        result[j] = temp[i];  
+-
+-                        j++; 
+-                } 
+-                total_bytes = total_bytes + numbytes; 
+-//                if (total_bytes==maxlen) 
+- //                       end = 1; 
+-        } 
+-	printf("incoming from the lenght of packet :%s",*temp);	 
+-
+-};
+- 
+-// recieve a test from the server 
+-void recv_testC(c) 
+-Client c; 
+-{ 
+-        char temp[1]; 
+-        int total = 0; 
+- 
+-        if (VERBOSE) printf("Waiting for test C...\n" ); 
+-        while (total < 1){ 
+-                 total += recv(c.new_fd, temp, 1, 0); 
+-                 } 
+-        if (VERBOSE) printf("Test C recieved: %d\n",temp[0]); 
+-}; 
+- 
+-// shut down the socket 
+-void closesocket(c) 
+-Client c; 
+-{ 
+-        if (VERBOSE) printf("Client: closing socket\n" ); 
+-        close(c.new_fd); 
+-}; 
+- 
+-// send some doubles over the wire 
+-void send_doubles(c, val, len) 
+-Client c; double *val; int len; 
+-{ 
+-        double *buff; 
+-        char *ptr, *valptr; 
+-        int i,j; 
+- 
+-        if (send(c.new_fd, (char *) val, len, 0) == -1) 
+-                perror("send doubles" ); 
+- 
+-        len = len/sizeof(double); 
+- 
+-        if (VERBOSE) { 
+-                printf("Client: sending %d doubles: ", len); 
+-                for (i=0; i<len; i++) 
+-                        printf("%0.3f ", val[i]); 
+-                printf("\n" ); 
+-        } 
+-}; 
+- 
+-// receive some doubles, returns num of doubles received 
+-int recv_doubles(c, val, maxlen) 
+-Client c; double *val; int maxlen; 
+-{ 
+-        int numbytes = 0; 
+-        int i, j; 
+-        char *temp; 
+-        char *result; 
+-        int end = 0; 
+-        int total_bytes = 0; 
+-        temp = (char *) c.buffer; 
+-        result = (char *) c.buffer2; 
+-        j = 0; 
+- 
+-        // we receiving the incoming doubles one byte at a time 
+-        // oh cross language sockets are so much fun... 
+- 
+-        while (!end) { 
+-                if ((numbytes=recv(c.new_fd, temp, BUFFSIZE, 0))==-1) 
+-                        perror("recv" ); 
+-                for (i=0; i<numbytes; i++) { 
+-                        result[j] = temp[i];  
+-                        j++; 
+-                } 
+-                total_bytes = total_bytes + numbytes; 
+-                if (total_bytes==maxlen) 
+-                        end = 1; 
+-        } 
+- 
+-        // now we need to put the array of bytes into the array of floats 
+-        char *ptr; 
+-        int num = j/sizeof(double); 
+-        ptr = (char *) val; 
+- 
+-        for (i = 0; i < j; i++) 
+-                ptr[i] = result[i]; 
+- 
+-        if (VERBOSE) { 
+-              //  printf("Client: received %d doubles: ", num); 
+-                for (i=0; i<num; i++) 
+-                        printf("%e ", val[i]); 
+-                printf("\n" ); 
+-        } 
+-        return num; 
+-};
+-//the following two functions (sendMessage ad conn) are required for hostapd not conntrack!
+-void sendMessage(char *MAC,char *userId,char *state) {
+-
+-	char *buf;
+-	asprintf(&buf,"{\n\"MAC\":\"%s\",\n\"userId\":\"%s\",\n\"State\":\"%s\",\n\"Token\":\"Token\"\n}",
+-			MAC, userId, state);
+-	
+-	//printf("buf %s",buf);
+-	conn(buf);
+-	free(buf);
+-
+-}
+-
+-
+-void conn(char *buf) {
+-	/*Create a client socket*/
+-	Client c = newClient(5011, 2);
+-	if (c.connected == 1) {
+-		printf("-----------------------\n");
+-		printf("Message to UBM:\n");
+-		printf("%s\n", buf);
+-		printf("-----------------------\n");
+-		/*Send first the size of the packet*/
+-		int sizep[1];
+-
+-		sizep[0] = strlen(buf);
+-		send_packet_lenght(c, sizep, sizeof(sizep));
+-
+-		/*After sending the packet size, tranmit packet itself*/
+-		send_packet(c, (u_char *) (buf), strlen(buf));
+-
+-		/*Close Socket*/
+-		closesocket(c);
+-	}
+-	else{ 
+-		printf("socket can not openned, ignoring \n"); 
+-	}
+-}
+-
+-/*      double val[3]; val[0]=1.2; val[1]=2.3; val[2]=3.4; 
+-        printf("sizeof(val) = %d\n", sizeof(val)); 
+-        printf("sizeof(double) = %d\n", sizeof(double)); 
+-        send_doubles(c, val, sizeof(val)); 
+-        recv_doubles(c, val, sizeof(val)); 
+-*/
+-int filterBuffer(char *buf){ 
+-	char *testBuf; 
+-	int bufLength = 0; 
+-	asprintf( &testBuf,"%s", strstr(buf, "127.0.0.1") ); 
+-	bufLength = strlen(testBuf); 
+-	if ( bufLength > 8) { 
+-		printf("TestBuf length is %d \n", bufLength );
+-		return 0;  
+-	}else{
+-		return 1; 
+-	}
+-}
+-#endif /* PACKETTRANSFER_H */
+diff -u -r -N hostapd-20120910/src/ap/sta_info.c originalPackets/hostapd-20120910/src/ap/sta_info.c
+--- hostapd-20120910/src/ap/sta_info.c	2013-04-21 22:15:03.865133335 +0200
++++ originalPackets/hostapd-20120910/src/ap/sta_info.c	2013-04-21 22:20:41.000000000 +0200
+@@ -386,18 +386,6 @@
+ 				       hapd, sta);
+ 		break;
+ 	case STA_DISASSOC:
+-		///////////////////////////////////////
+-		//printf("\n\n\n\n mursel : handle_deaut is disassociated: \n\n\n\n");
+-	 	printf("\n\n\n\n HOSTAPD MESSAGE STAINFO:  Station is disassociated due to the timeout \n\n\n\n");
+-	        //printf("\n\n\n\n mursel : STA identity %s \n", sm->identity);	
+-		char *MAC;
+-        	asprintf(&MAC,"%02x:%02x:%02x:%02x:%02x:%02x",sta->addr[0], sta->addr[1], sta->addr[2], sta->addr[3], sta->addr[4], sta->addr[5]);
+-	        sendMessage(MAC,"unknown","Disassociation");
+-        	free(MAC);	
+-	        printf("\n\n\n\n HOSTAPD MESSAGE:  STA address is " MACSTR " \n\n\n\n", MAC2STR(sta->addr));
+-
+-		/////////////////////////////////////
+-	
+ 		ap_sta_set_authorized(hapd, sta, 0);
+ 		sta->flags &= ~WLAN_STA_ASSOC;
+ 		ieee802_1x_notify_port_enabled(sta->eapol_sm, 0);
+@@ -576,24 +564,10 @@
+ 
+ void ap_sta_disassociate(struct hostapd_data *hapd, struct sta_info *sta,
+ 			 u16 reason)
+-{	
+-
++{
+ 	wpa_printf(MSG_DEBUG, "%s: disassociate STA " MACSTR,
+ 		   hapd->conf->iface, MAC2STR(sta->addr));
+ 	sta->flags &= ~WLAN_STA_ASSOC;
+-	///////////////////////////////////////
+-	/*	
+-	//printf("\n\n\n\n mursel : handle_deaut is disassociated: \n\n\n\n");
+- 	printf("\n\n\n\n HOSTAPD MESSAGE STAINFO:  Station is disassociated \n\n\n\n");
+-        //printf("\n\n\n\n mursel : STA identity %s \n", sm->identity);
+-	char *MAC;
+-        asprintf(&MAC,"%02x:%02x:%02x:%02x:%02x:%02x",sta->addr[0], sta->addr[1], sta->addr[2], sta->addr[3], sta->addr[4], sta->addr[5]);
+-        sendMessage(MAC,"unknown","Disassociation");
+-        free(MAC);	
+-        printf("\n HOSTAPD MESSAGE:  STA address is " MACSTR " \n", MAC2STR(sta->addr));
+-	*/
+-	/////////////////////////////////////
+-
+ 	ap_sta_set_authorized(hapd, sta, 0);
+ 	sta->timeout_next = STA_DEAUTH;
+ 	wpa_printf(MSG_DEBUG, "%s: reschedule ap_handle_timer timeout "
+@@ -632,19 +606,6 @@
+ 	wpa_printf(MSG_DEBUG, "%s: deauthenticate STA " MACSTR,
+ 		   hapd->conf->iface, MAC2STR(sta->addr));
+ 	sta->flags &= ~(WLAN_STA_AUTH | WLAN_STA_ASSOC);
+-	///////////////////////////////////////
+-	/*	
+-	//printf("\n\n\n\n mursel : handle_deaut is disassociated: \n\n\n\n");
+-	printf("\n\n\n\n HOSTAPD MESSAGE STAINFO: Station is deauthenticated \n\n\n\n");
+-        //printf("\n\n\n\n mursel : STA identity %s \n\n\n\n", sm->identity);
+-	printf("\n HOSTAPD MESSAGE: STA address is " MACSTR " \n", MAC2STR(sta->addr));
+-		
+-	char *MAC;
+-        asprintf(&MAC,"%02x:%02x:%02x:%02x:%02x:%02x",sta->addr[0], sta->addr[1], sta->addr[2], sta->addr[3], sta->addr[4], sta->addr[5]);
+-        sendMessage( MAC,"unknown","Deauthentication");
+-	free(MAC);
+-	*/	
+-	/////////////////////////////////////
+ 	ap_sta_set_authorized(hapd, sta, 0);
+ 	sta->timeout_next = STA_REMOVE;
+ 	wpa_printf(MSG_DEBUG, "%s: reschedule ap_handle_timer timeout "
+@@ -884,12 +845,6 @@
+ void ap_sta_set_authorized(struct hostapd_data *hapd, struct sta_info *sta,
+ 			   int authorized)
+ {
+-
+-	if(authorized==0){
+-		printf("\n\n\n\nHOSTAPD MESSAGE STAINFO: STA is unauthorized: %d \n\n\n\n",authorized);
+-	}else{
+-		printf("\n\n\n\nHOSTAPD MESSAGE STAINFO: STA is authorized: %d \n\n\n\n",authorized);
+-	}
+ 	const u8 *dev_addr = NULL;
+ #ifdef CONFIG_P2P
+ 	u8 addr[ETH_ALEN];
+@@ -957,6 +912,7 @@
+ void ap_sta_disconnect(struct hostapd_data *hapd, struct sta_info *sta,
+ 		       const u8 *addr, u16 reason)
+ {
++
+ 	if (sta == NULL && addr)
+ 		sta = ap_get_sta(hapd, addr);
+ 
+@@ -965,19 +921,6 @@
+ 
+ 	if (sta == NULL)
+ 		return;
+-
+-	///////////////////////////////////////
+-	//printf("\n\n\n\n mursel : handle_deaut is disassociated: \n\n\n\n");
+- 	printf("\n\n\n\nHOSTAPD MESSAGE STAINFO:  Station is disassociated \n");
+-        printf("HOSTAPD MESSAGE:  STA address is " MACSTR " \n", MAC2STR(sta->addr));        
+-	//printf("\n\n\n\n mursel : STA identity %s \n", sm->identity);
+-	char *MAC;
+-        asprintf(&MAC,"%02x:%02x:%02x:%02x:%02x:%02x",sta->addr[0], sta->addr[1], sta->addr[2], sta->addr[3], sta->addr[4], sta->addr[5]);
+-        sendMessage(MAC,"unknown","Disassociation");
+-        free(MAC);	
+-
+-
+-	/////////////////////////////////////
+ 	ap_sta_set_authorized(hapd, sta, 0);
+ 	wpa_auth_sm_event(sta->wpa_sm, WPA_DEAUTH);
+ 	ieee802_1x_notify_port_enabled(sta->eapol_sm, 0);
+diff -u -r -N hostapd-20120910/src/eap_server/eap_server_identity.c originalPackets/hostapd-20120910/src/eap_server/eap_server_identity.c
+--- hostapd-20120910/src/eap_server/eap_server_identity.c	2013-04-21 22:15:03.865133335 +0200
++++ originalPackets/hostapd-20120910/src/eap_server/eap_server_identity.c	2013-04-21 22:20:40.000000000 +0200
+@@ -117,10 +117,8 @@
+ 			       respData, &len);
+ 	if (pos == NULL)
+ 		return; /* Should not happen - frame already validated */
+-	//printf("\n\n\n\n\n\nHOSTAPD MESSAGE:  identity first show \n\n\n\n");
+-	wpa_hexdump_ascii(MSG_DEBUG, "EAP-Identity: Peer identity", pos, len);
+-	//printf("HOSTAPD MESSAGE:  identity second show \n\n\n\n\n");
+ 
++	wpa_hexdump_ascii(MSG_DEBUG, "EAP-Identity: Peer identity", pos, len);
+ 	if (sm->identity)
+ 		sm->update_user = TRUE;
+ 	os_free(sm->identity);
+@@ -131,27 +129,6 @@
+ 		os_memcpy(sm->identity, pos, len);
+ 		sm->identity_len = len;
+ 		data->state = SUCCESS;
+-		printf("\n\n\n\n HOSTAPD MESSAGE: Printing the identity \n\n\n\n\n");
+-		int i=0; 
+-		
+-		for (i = 0; i < sm->identity_len; i++)
+-			printf(" %c", sm->identity[i]);
+-			
+-		
+-
+-		printf("\n\n\n\n\n"); 
+-		char *MAC;
+-		char *userId = wpa_ssid_txt(sm->identity,sm->identity_len);
+-		
+-	        asprintf(&MAC,"%02x:%02x:%02x:%02x:%02x:%02x",sm->peer_addr[0],sm->peer_addr[1],sm->peer_addr[2],sm->peer_addr[3],sm->peer_addr[4],sm->peer_addr[5]);
+-                sendMessage( MAC,userId,"Association");
+-		free(MAC);
+-		
+-		
+-		for (i = 0; i < ETH_ALEN; i++)
+-			printf("%02x", sm->peer_addr[i]);
+-	
+-		printf("\n\n\n\n HOSTAPD MESSAGE: STA address is " MACSTR " \n\n\n\n", MAC2STR(sm->peer_addr));
+ 	}
+ }
+ 
